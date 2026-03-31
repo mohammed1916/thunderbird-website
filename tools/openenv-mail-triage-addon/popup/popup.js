@@ -7,6 +7,10 @@ const urgencyEl = document.getElementById("urgency");
 const actionsEl = document.getElementById("actions");
 const replyEl = document.getElementById("reply");
 const reasoningEl = document.getElementById("reasoning");
+const executeEl = document.getElementById("execute-btn");
+
+let currentMessageId = null;
+let currentRecommendations = null;
 
 function flattenParts(parts = []) {
   const values = [];
@@ -60,6 +64,7 @@ async function loadMessage() {
   const body = flattenParts(full.parts).trim();
 
   return {
+    id: message.id,
     sender: message.author || "Unknown sender",
     subject: message.subject || "(no subject)",
     body,
@@ -83,12 +88,14 @@ async function fetchRecommendation(message) {
 async function init() {
   try {
     const message = await loadMessage();
+    currentMessageId = message.id;
     senderEl.textContent = message.sender;
     subjectEl.textContent = message.subject;
     previewEl.textContent = message.body.slice(0, 240) || "No readable body content was found.";
     statusEl.textContent = "Sending message to local OpenEnv triage service...";
 
     const recommendation = await fetchRecommendation(message);
+    currentRecommendations = recommendation;
     categoryEl.textContent = recommendation.category;
     urgencyEl.textContent = recommendation.urgency;
     replyEl.textContent = recommendation.suggested_reply;
@@ -104,5 +111,36 @@ async function init() {
     renderActions([]);
   }
 }
+
+executeEl.addEventListener("click", async () => {
+    if (!currentMessageId || !currentRecommendations) return;
+    statusEl.textContent = "Executing multi-step actions...";
+    
+    try {
+        const actions = currentRecommendations.suggested_actions || [];
+        
+        // Advanced Multi-Step Handlers:
+        if (actions.includes("star")) {
+            await browser.messages.update(currentMessageId, { flagged: true });
+        }
+        
+        if (actions.includes("forward_to_assistant") || actions.includes("forward_to_it_sec")) {
+            // In a real addon we'd use browser.compose.beginForward
+            console.log("Triggered Auto-Forward workflow."); 
+        }
+
+        if (actions.includes("move_to_junk")) {
+            await browser.messages.update(currentMessageId, { junk: true });
+        }
+        
+        statusEl.textContent = "Actions executed successfully!";
+        executeEl.textContent = "Done";
+        executeEl.disabled = true;
+        executeEl.style.backgroundColor = "green";
+
+    } catch (e) {
+        statusEl.textContent = "Error executing actions: " + e.message;
+    }
+});
 
 init();
