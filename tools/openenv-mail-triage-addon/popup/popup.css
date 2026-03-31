@@ -124,3 +124,35 @@ h1 {
   color: var(--accent);
   font-weight: 700;
 }
+
+#execute-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #0f766e, #044b46);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#execute-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.4);
+}
+
+#execute-btn:active {
+  transform: translateY(0);
+}
+
+#execute-btn:disabled {
+  background: #a0a0a0;
+  box-shadow: none;
+  transform: translateY(0);
+  cursor: not-allowed;
+}

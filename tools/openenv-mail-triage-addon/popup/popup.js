@@ -125,8 +125,13 @@ executeEl.addEventListener("click", async () => {
         }
         
         if (actions.includes("forward_to_assistant") || actions.includes("forward_to_it_sec")) {
-            // In a real addon we'd use browser.compose.beginForward
-            console.log("Triggered Auto-Forward workflow."); 
+            try {
+                if (browser.compose && browser.compose.beginForward) {
+                    await browser.compose.beginForward(currentMessageId);
+                }
+            } catch (err) {
+                console.error("Compose API forwarding failed: ", err);
+            }
         }
 
         if (actions.includes("move_to_junk")) {
@@ -134,9 +139,8 @@ executeEl.addEventListener("click", async () => {
         }
         
         statusEl.textContent = "Actions executed successfully!";
-        executeEl.textContent = "Done";
+        executeEl.textContent = "Executed ✓";
         executeEl.disabled = true;
-        executeEl.style.backgroundColor = "green";
 
     } catch (e) {
         statusEl.textContent = "Error executing actions: " + e.message;
