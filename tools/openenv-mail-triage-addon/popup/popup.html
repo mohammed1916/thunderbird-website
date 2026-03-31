@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenEnv Mail Triage</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">OpenEnv x Thunderbird</p>
+        <h1>Mail triage</h1>
+        <p id="status" class="status">Loading current message...</p>
+      </header>
+
+      <section class="card">
+        <h2>Message</h2>
+        <dl class="meta">
+          <div>
+            <dt>From</dt>
+            <dd id="sender">-</dd>
+          </div>
+          <div>
+            <dt>Subject</dt>
+            <dd id="subject">-</dd>
+          </div>
+        </dl>
+        <p id="preview" class="preview">Looking up message content...</p>
+      </section>
+
+      <section class="card">
+        <h2>Recommendation</h2>
+        <dl class="meta">
+          <div>
+            <dt>Category</dt>
+            <dd id="category">-</dd>
+          </div>
+          <div>
+            <dt>Urgency</dt>
+            <dd id="urgency">-</dd>
+          </div>
+        </dl>
+        <div>
+          <p class="label">Suggested actions</p>
+          <ul id="actions" class="chips"></ul>
+        </div>
+        <div>
+          <p class="label">Suggested reply</p>
+          <p id="reply" class="reply">-</p>
+        </div>
+        <div>
+          <p class="label">Reasoning</p>
+          <p id="reasoning" class="reasoning">-</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "OpenEnv Mail Triage",
+  "version": "0.1.0",
+  "description": "Prototype Thunderbird add-on for OpenEnv-powered email triage.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "openenv-mail-triage@example.com",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "messagesRead",
+    "tabs",
+    "storage",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "icons": {
+    "64": "icons/openenv-triage.svg"
+  },
+  "message_display_action": {
+    "default_title": "OpenEnv Triage",
+    "default_popup": "popup/popup.html"
+  }
+}
