@@ -8,6 +8,7 @@ const actionsEl = document.getElementById("actions");
 const replyEl = document.getElementById("reply");
 const reasoningEl = document.getElementById("reasoning");
 const executeEl = document.getElementById("execute-btn");
+const draftReplyEl = document.getElementById("draft-reply-btn");
 
 let currentMessageId = null;
 let currentRecommendations = null;
@@ -101,6 +102,11 @@ async function init() {
     replyEl.textContent = recommendation.suggested_reply;
     reasoningEl.textContent = recommendation.reasoning;
     renderActions(recommendation.suggested_actions);
+
+    if (recommendation.suggested_reply && recommendation.suggested_reply !== "-" && recommendation.suggested_reply.trim() !== "") {
+      draftReplyEl.style.display = "inline-block";
+    }
+
     statusEl.textContent = "Recommendation ready.";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -109,8 +115,21 @@ async function init() {
     replyEl.textContent = "-";
     reasoningEl.textContent = "-";
     renderActions([]);
+    draftReplyEl.style.display = "none";
   }
 }
+
+draftReplyEl.addEventListener("click", async () => {
+    if (!currentMessageId || !currentRecommendations?.suggested_reply) return;
+    try {
+        if (browser.compose && browser.compose.beginReply) {
+            await browser.compose.beginReply(currentMessageId, "replyToSender", { body: currentRecommendations.suggested_reply });
+        }
+    } catch (err) {
+        console.error("Compose API reply failed: ", err);
+        statusEl.textContent = "Error opening draft reply: " + err.message;
+    }
+});
 
 executeEl.addEventListener("click", async () => {
     if (!currentMessageId || !currentRecommendations) return;
@@ -119,11 +138,36 @@ executeEl.addEventListener("click", async () => {
     try {
         const actions = currentRecommendations.suggested_actions || [];
         
-        // Advanced Multi-Step Handlers:
-        if (actions.includes("star")) {
+        // Specific OpenEnv Actions Handlers:
+        if (actions.includes("star") || actions.includes("flag")) {
             await browser.messages.update(currentMessageId, { flagged: true });
         }
+
+        // Handle dynamically applying 'create_task' and 'label_*' strings as tags
+        let tagsToAdd = [];
+        if (actions.includes("create_task")) {
+            tagsToAdd.push("$label4"); // Thunderbird's 'To Do' label
+        }
+        const extractedLabels = actions.filter(a => a.startsWith("label_")).map(a => a.replace("label_", ""));
+        tagsToAdd = tagsToAdd.concat(extractedLabels);
         
+        if (tagsToAdd.length > 0) {
+            const currentMsg = await browser.messages.get(currentMessageId);
+            const mergedTags = Array.from(new Set([...(currentMsg.tags || []), ...tagsToAdd]));
+            await browser.messages.update(currentMessageId, { tags: mergedTags });
+        }
+        
+        // Security report specific forwarding action
+        if (actions.includes("report_security")) {
+            try {
+                if (browser.compose && browser.compose.beginForward) {
+                    await browser.compose.beginForward(currentMessageId, "forwardInline", { to: ["security-reports@example.com"] });
+                }
+            } catch (err) {
+                console.error("Compose API security forward failed: ", err);
+            }
+        }
+
         if (actions.includes("forward_to_assistant") || actions.includes("forward_to_it_sec")) {
             try {
                 if (browser.compose && browser.compose.beginForward) {
@@ -136,6 +180,28 @@ executeEl.addEventListener("click", async () => {
 
         if (actions.includes("move_to_junk")) {
             await browser.messages.update(currentMessageId, { junk: true });
+        }
+
+        if (actions.includes("reply")) {
+            if (browser.compose && browser.compose.beginReply && currentRecommendations.suggested_reply) {
+                await browser.compose.beginReply(currentMessageId, "replyToSender", { body: currentRecommendations.suggested_reply });
+            }
+        }
+        
+        if (actions.includes("mark_read")) {
+            await browser.messages.update(currentMessageId, { read: true });
+        }
+        
+        if (actions.includes("mark_unread")) {
+            await browser.messages.update(currentMessageId, { read: false });
+        }
+        
+        if (actions.includes("delete_email") || actions.includes("trash")) {
+            await browser.messages.delete([currentMessageId]);
+        }
+        
+        if (actions.includes("archive")) {
+            await browser.messages.archive([currentMessageId]);
         }
         
         statusEl.textContent = "Actions executed successfully!";

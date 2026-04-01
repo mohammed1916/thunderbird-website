@@ -11,6 +11,9 @@
   },
   "permissions": [
     "messagesRead",
+    "messagesModify",
+    "messagesDelete",
+    "compose",
     "tabs",
     "storage",
     "http://127.0.0.1/*",
