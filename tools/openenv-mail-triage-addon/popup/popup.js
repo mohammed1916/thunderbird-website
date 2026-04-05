@@ -73,17 +73,95 @@ async function loadMessage() {
 }
 
 async function fetchRecommendation(message) {
-  const response = await fetch("http://127.0.0.1:8000/api/triage", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(message),
-  });
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/triage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(message),
+    });
 
-  if (!response.ok) {
-    throw new Error(`OpenEnv demo service returned ${response.status}.`);
+    if (!response.ok) {
+      throw new Error(`OpenEnv demo service returned ${response.status}.`);
+    }
+
+    const result = await response.json();
+    result.reasoning = `${result.reasoning || ""} Source: local OpenEnv API.`.trim();
+    return result;
+  } catch (error) {
+    const fallback = inferRecommendationLocally(message);
+    fallback.reasoning = `${fallback.reasoning} Source: local add-on heuristic fallback (no backend needed).`;
+    return fallback;
+  }
+}
+
+function inferRecommendationLocally(message) {
+  const text = `${message.subject || ""}\n${message.body || ""}`.toLowerCase();
+  const sender = (message.sender || "").toLowerCase();
+
+  const phishingSignals = [
+    "password",
+    "verify account",
+    "suspended",
+    "urgent action",
+    "click link",
+    "otp",
+    "bank",
+  ];
+  const incidentSignals = ["outage", "down", "error", "failed", "incident", "bug", "critical"];
+  const requestSignals = ["please", "can you", "request", "need", "help", "support"];
+
+  const hasPhishing = phishingSignals.some((k) => text.includes(k));
+  const hasIncident = incidentSignals.some((k) => text.includes(k));
+  const hasRequest = requestSignals.some((k) => text.includes(k));
+  const looksVip = sender.includes("ceo") || sender.includes("founder") || sender.includes("director");
+
+  if (hasPhishing) {
+    return {
+      category: "security_threat",
+      urgency: "critical",
+      suggested_actions: ["move_to_junk", "forward_to_it_sec", "flag"],
+      suggested_reply: "",
+      reasoning: "Detected suspicious phishing-like keywords in email content.",
+    };
   }
 
-  return response.json();
+  if (looksVip) {
+    return {
+      category: "vip",
+      urgency: "high",
+      suggested_actions: ["flag", "forward_to_assistant", "reply"],
+      suggested_reply: "Thank you for your message. I have received this and will prioritize it immediately.",
+      reasoning: "Sender appears to be high-priority/VIP by sender name.",
+    };
+  }
+
+  if (hasIncident) {
+    return {
+      category: "Incident",
+      urgency: "high",
+      suggested_actions: ["flag", "forward_to_it_sec", "reply"],
+      suggested_reply: "Thanks for reporting this issue. We are investigating urgently and will update you shortly.",
+      reasoning: "Issue/incident keywords detected in email text.",
+    };
+  }
+
+  if (hasRequest) {
+    return {
+      category: "Request",
+      urgency: "medium",
+      suggested_actions: ["reply", "create_task"],
+      suggested_reply: "Thank you for your request. We have received it and will follow up soon.",
+      reasoning: "Request/help language detected.",
+    };
+  }
+
+  return {
+    category: "general",
+    urgency: "low",
+    suggested_actions: ["label_general"],
+    suggested_reply: "Thanks for your message. I will review and get back to you soon.",
+    reasoning: "No strong signals matched; applied default local triage.",
+  };
 }
 
 async function init() {
@@ -107,7 +185,11 @@ async function init() {
       draftReplyEl.style.display = "inline-block";
     }
 
-    statusEl.textContent = "Recommendation ready.";
+    if ((recommendation.reasoning || "").includes("heuristic fallback")) {
+      statusEl.textContent = "Recommendation ready (free offline mode).";
+    } else {
+      statusEl.textContent = "Recommendation ready (local API mode).";
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     statusEl.textContent = message;

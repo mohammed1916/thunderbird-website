@@ -5,7 +5,8 @@ This is a Thunderbird MailExtension prototype for the hackathon demo.
 ## What it does
 
 - Reads the currently displayed email in Thunderbird
-- Sends the subject, sender, and body to the local OpenEnv demo service
+- Sends the subject, sender, and body to the local OpenEnv demo service (if running)
+- Falls back to fully local/offline triage heuristics when backend is not running
 - Displays triage recommendations for category, urgency, actions, and a suggested reply
 
 ## Local setup
@@ -23,6 +24,8 @@ uv run server
 
 ## Notes
 
-- The add-on currently recommends actions only. It does not yet mutate messages in Thunderbird.
-- The backend endpoint is `http://127.0.0.1:8000/demo/triage`.
-- For a polished hackathon story, we can next wire the recommended actions to real Thunderbird APIs.
+- This add-on now works in two modes:
+  - Local API mode: calls `http://127.0.0.1:8000/api/triage`
+  - Free offline mode: uses built-in heuristics directly in the extension
+- No Cloud Run is required for Thunderbird usage.
+- The add-on supports drafting replies and applying selected message actions in Thunderbird.
